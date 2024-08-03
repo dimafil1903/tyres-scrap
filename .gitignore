@@ -1,0 +1,12 @@
+venv
+db.db
+old/downloaded_images/*
+old/db.db
+old/downloaded_images.zip
+old/models-main-copy.csv
+old/models-main.csv
+ws
+.idea
+.DS_Store
+__pycache__
+brands_models_trims.db
