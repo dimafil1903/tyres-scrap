@@ -3,47 +3,34 @@ import asyncio
 from sqlalchemy.exc import IntegrityError
 
 from base import create_browser, BrowserRestartException
-from base import get_free_proxy
 from brands import fetch_brands
 from database import setup_database, create_brand, get_unprocessed_brands, get_unprocessed_models, \
     get_unprocessed_trims, SessionLocal
 from models import fetch_and_insert_models
 from modifications import fetch_and_insert_modifications
-from trims import fetch__and_insert_trims
-
-NUM_BROWSERS = 10  # Number of browsers to use for parallel scraping
+from trims import fetch_and_insert_trims
 
 
 async def process_brands(unprocessed_brands, db):
-    proxy = get_free_proxy()
     for brand in unprocessed_brands:
+        # sleep to avoid being blocked by the server for 2 seconds
+        await asyncio.sleep(3)
         await fetch_and_insert_models(
             brand.id,
             brand.url,
-            db=db,
-            proxy=proxy
+            db=db
         )
 
 
 async def process_models(unprocessed_models, db):
-    proxy = get_free_proxy()
-
-    async def process_model(model, db=db, proxy=proxy):
-        await fetch__and_insert_trims(
+    for model in unprocessed_models:
+        # sleep to avoid being blocked by the server for 2 seconds
+        await asyncio.sleep(3)
+        await fetch_and_insert_trims(
             model.id,
             model.url,
-            db=db,
-            proxy=proxy
+            db=db
         )
-
-    for model in unprocessed_models:
-        await process_model(model, db=db, proxy=proxy)
-
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
 
 
 async def process_trim(trim, db, browser):
@@ -66,7 +53,7 @@ async def process_trims(unprocessed_trims, db):
                 processed = True
             except BrowserRestartException:
                 browser.close()
-                browser = await create_browser(proxy=get_free_proxy())
+                browser = await create_browser()
                 await asyncio.sleep(1)
 
 
@@ -81,17 +68,25 @@ async def main():
             except IntegrityError as e:
                 print(f'Error while creating brand {brand.name}: {e}')
 
-        unprocessed_brands = await get_unprocessed_brands(db)
-        unprocessed_models = await get_unprocessed_models(db)
-        unprocessed_trims = await get_unprocessed_trims(db)
+    # Process unprocessed brands, models, and trims until the arrays are empty
+    while True:
+        async with SessionLocal() as db:
+            unprocessed_brands = await get_unprocessed_brands(db)
+            if not unprocessed_brands:
+                break
+            await process_brands(unprocessed_brands, db)
 
-    async with SessionLocal() as db:
-        await process_brands(unprocessed_brands, db)
-    async with SessionLocal() as db:
-        await process_models(unprocessed_models, db)
-    async with SessionLocal() as db:
-        await process_trims(unprocessed_trims, db)
+        async with SessionLocal() as db:
+            unprocessed_models = await get_unprocessed_models(db)
+            if not unprocessed_models:
+                break
+            await process_models(unprocessed_models, db)
 
+        async with SessionLocal() as db:
+            unprocessed_trims = await get_unprocessed_trims(db)
+            if not unprocessed_trims:
+                break
+            await process_trims(unprocessed_trims, db)
 
 if __name__ == '__main__':
     asyncio.run(main())

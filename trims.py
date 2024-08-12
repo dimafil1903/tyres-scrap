@@ -10,7 +10,7 @@ from proxy import get_free_proxy_async
 from schemas.shemas import TrimCreate
 
 
-async def fetch__and_insert_trims(
+async def fetch_and_insert_trims(
         model_id: int,
         model_url: HttpUrl,
         db,

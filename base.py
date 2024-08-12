@@ -129,7 +129,5 @@ async def fetch_with_retry(url, retries=1000, proxy=None):
                     print(f"Response status: {response.status}")
                     return await response.text()
             except Exception as e:
-                print(f"Error fetching {url} with proxy {proxy}: {e}")
-                proxy =  get_free_proxy()
                 if attempt == retries - 1:
                     raise Exception(f"Failed to fetch {url} after {retries} attempts")
