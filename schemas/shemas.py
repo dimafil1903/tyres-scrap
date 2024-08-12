@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, HttpUrl
 
@@ -61,6 +61,8 @@ class ModificationCreate(BaseModel):
     thread_size: str
     wheel_tightening: str
     regions: List[str]
+    trim_levels: Optional[str]  # This allows trim_levels to be None
+
 
 
 class Modification(ModificationCreate):

@@ -1,7 +1,5 @@
 import asyncio
-
 from sqlalchemy.exc import IntegrityError
-
 from base import create_browser, BrowserRestartException
 from brands import fetch_brands
 from database import setup_database, create_brand, get_unprocessed_brands, get_unprocessed_models, \
@@ -10,41 +8,21 @@ from models import fetch_and_insert_models
 from modifications import fetch_and_insert_modifications
 from trims import fetch_and_insert_trims
 
-
 async def process_brands(unprocessed_brands, db):
     for brand in unprocessed_brands:
-        # sleep to avoid being blocked by the server for 2 seconds
-        await asyncio.sleep(3)
-        await fetch_and_insert_models(
-            brand.id,
-            brand.url,
-            db=db
-        )
-
+        await asyncio.sleep(3)  # Sleep to avoid being blocked by the server for 2 seconds
+        await fetch_and_insert_models(brand.id, brand.url, db=db)
 
 async def process_models(unprocessed_models, db):
     for model in unprocessed_models:
-        # sleep to avoid being blocked by the server for 2 seconds
-        await asyncio.sleep(3)
-        await fetch_and_insert_trims(
-            model.id,
-            model.url,
-            db=db
-        )
-
+        await asyncio.sleep(3)  # Sleep to avoid being blocked by the server for 2 seconds
+        await fetch_and_insert_trims(model.id, model.url, db=db)
 
 async def process_trim(trim, db, browser):
-    await fetch_and_insert_modifications(
-        trim.id,
-        trim.url,
-        db=db,
-        browser=browser
-    )
-
+    await fetch_and_insert_modifications(trim.id, trim.url, db=db, browser=browser)
 
 async def process_trims(unprocessed_trims, db):
-    browser = await create_browser()  # Create browser for each trim
-
+    browser = await create_browser()  # Create browser once for processing all trims
     for trim in unprocessed_trims:
         processed = False
         while not processed:
@@ -55,7 +33,10 @@ async def process_trims(unprocessed_trims, db):
                 browser.close()
                 browser = await create_browser()
                 await asyncio.sleep(1)
-
+            except Exception as e:
+                print(f"Unexpected error processing trim {trim.id}: {e}")
+                processed = True  # Skip this trim after logging the error
+    browser.close()  # Ensure the browser is closed after processing
 
 async def main():
     await setup_database()
@@ -68,24 +49,16 @@ async def main():
             except IntegrityError as e:
                 print(f'Error while creating brand {brand.name}: {e}')
 
-    # Process unprocessed brands, models, and trims until the arrays are empty
-    while True:
-        async with SessionLocal() as db:
-            unprocessed_brands = await get_unprocessed_brands(db)
-            if not unprocessed_brands:
-                break
+        unprocessed_brands = await get_unprocessed_brands(db)
+        if unprocessed_brands:
             await process_brands(unprocessed_brands, db)
 
-        async with SessionLocal() as db:
-            unprocessed_models = await get_unprocessed_models(db)
-            if not unprocessed_models:
-                break
+        unprocessed_models = await get_unprocessed_models(db)
+        if unprocessed_models:
             await process_models(unprocessed_models, db)
 
-        async with SessionLocal() as db:
-            unprocessed_trims = await get_unprocessed_trims(db)
-            if not unprocessed_trims:
-                break
+        unprocessed_trims = await get_unprocessed_trims(db)
+        if unprocessed_trims:
             await process_trims(unprocessed_trims, db)
 
 if __name__ == '__main__':

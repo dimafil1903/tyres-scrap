@@ -10,12 +10,13 @@ from schemas.shemas import BrandCreate, ModelCreate, TrimCreate, ModificationCre
 DATABASE_URL = 'sqlite+aiosqlite:///./db.db'
 database = databases.Database(DATABASE_URL)
 Base = declarative_base()
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=True, connect_args={"timeout": 15})
 SessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
 )
+
 
 class BrandModel(Base):
     __tablename__ = 'brands'
@@ -26,6 +27,7 @@ class BrandModel(Base):
     processed = Column(Boolean, default=False)
 
     models = relationship("ModelModel", back_populates="brand")
+
 
 class ModelModel(Base):
     __tablename__ = 'models'
@@ -39,6 +41,7 @@ class ModelModel(Base):
     brand = relationship("BrandModel", back_populates="models")
     trims = relationship("TrimModel", back_populates="model")
     # wheel_sizes = relationship("WheelSizeModel", back_populates="model")
+
 
 class TrimModel(Base):
     __tablename__ = 'trims'
@@ -54,6 +57,7 @@ class TrimModel(Base):
 
     model = relationship("ModelModel", back_populates="trims")
     modifications = relationship("ModificationModel", back_populates="trim")
+
 
 # class WheelSizeModel(Base):
 #     __tablename__ = 'wheel_sizes'
@@ -83,8 +87,9 @@ class ModificationModel(Base):
     wheel_fasteners = Column(String)
     thread_size = Column(String)
     wheel_tightening = Column(String)
-
+    trim_levels = Column(String, nullable=True)
     trim = relationship("TrimModel", back_populates="modifications")
+
 
 class Proxy(Base):
     __tablename__ = "proxies"
@@ -95,9 +100,11 @@ class Proxy(Base):
     used = Column(Boolean, default=False)
     failed = Column(Boolean, default=False)
 
+
 async def setup_database():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
 
 async def get_db():
     async with SessionLocal() as db:
@@ -106,15 +113,19 @@ async def get_db():
         finally:
             await db.close()
 
+
 async def create_brand(db: AsyncSession, brand: BrandCreate):
     query = insert(BrandModel).values(name=brand.name, url=brand.url)
     await db.execute(query)
     await db.commit()
 
+
 async def create_model(db: AsyncSession, model: ModelCreate, brand_id: int):
-    query = insert(ModelModel).values(name=model.name, url=model.url, brand_id=brand_id).options(joinedload(ModelModel.brand))
+    query = insert(ModelModel).values(name=model.name, url=model.url, brand_id=brand_id).options(
+        joinedload(ModelModel.brand))
     await db.execute(query)
     await db.commit()
+
 
 async def create_trim(db: AsyncSession, trim: TrimCreate, model_id: int):
     regions_str = ', '.join(trim.regions)
@@ -128,6 +139,7 @@ async def create_trim(db: AsyncSession, trim: TrimCreate, model_id: int):
     ).options(joinedload(TrimModel.model))
     await db.execute(query)
     await db.commit()
+
 
 async def create_modification(db: AsyncSession, modification: ModificationCreate, trim_id: int):
     regions_str = ', '.join(modification.regions)
@@ -145,65 +157,82 @@ async def create_modification(db: AsyncSession, modification: ModificationCreate
         bolt_pattern_pcd=modification.bolt_pattern_pcd,
         wheel_fasteners=modification.wheel_fasteners,
         thread_size=modification.thread_size,
-        wheel_tightening=modification.wheel_tightening
+        wheel_tightening=modification.wheel_tightening,
+        trim_levels=modification.trim_levels
     ).options(joinedload(ModificationModel.trim))
     await db.execute(query)
     await db.commit()
+
 
 async def update_brand_processed(db: AsyncSession, brand_id: int):
     query = update(BrandModel).where(BrandModel.id == brand_id).values(processed=True)
     await db.execute(query)
     await db.commit()
 
+
 async def update_model_processed(db: AsyncSession, model_id: int):
     query = update(ModelModel).where(ModelModel.id == model_id).values(processed=True)
     await db.execute(query)
     await db.commit()
 
+
 async def update_trim_processed(db: AsyncSession, trim_id: int):
-    query = update(TrimModel).where(TrimModel.id == trim_id).values(processed=True)
+    query = (update(TrimModel)
+    .options(joinedload(TrimModel.model))
+    .where(TrimModel.id == trim_id).values(processed=True))
     await db.execute(query)
     await db.commit()
+
 
 async def update_modification_processed(db: AsyncSession, modification_id: int):
     query = update(ModificationModel).where(ModificationModel.id == modification_id).values(processed=True)
     await db.execute(query)
     await db.commit()
 
+
 async def get_unprocessed_brands(db: AsyncSession):
     query = select(BrandModel).where(BrandModel.processed == False)
     result = await db.execute(query)
     return result.scalars().all()
+
 
 async def get_unprocessed_models(db: AsyncSession):
     query = select(ModelModel).where(ModelModel.processed == False)
     result = await db.execute(query)
     return result.scalars().all()
 
+
 async def get_unprocessed_trims(db: AsyncSession):
     query = select(TrimModel).where(TrimModel.processed == False)
     result = await db.execute(query)
     return result.scalars().all()
 
+
 async def get_unprocessed_modifications(db: AsyncSession):
-    query = select(ModificationModel).where(ModificationModel.processed == False)
+    query = (select(ModificationModel)
+             .options(joinedload(ModificationModel.trim))
+             .where(ModificationModel.processed == False))
     result = await db.execute(query)
     return result.scalars().all()
+
 
 async def get_unused_proxy(db: AsyncSession):
     query = select(Proxy).where(Proxy.used == False, Proxy.failed == False)
     result = await db.execute(query)
     return result.scalars().first()
 
+
 async def mark_proxy_as_used(db: AsyncSession, proxy):
     query = update(Proxy).where(Proxy.id == proxy.id).values(used=True)
     await db.execute(query)
     await db.commit()
 
+
 async def mark_proxy_as_failed(db: AsyncSession, proxy):
     query = update(Proxy).where(Proxy.id == proxy.id).values(failed=True)
     await db.execute(query)
     await db.commit()
+
 
 async def add_proxy(db: AsyncSession, ip, port):
     query = insert(Proxy).values(ip=ip, port=port)

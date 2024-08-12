@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 from typing import List
 
 from bs4 import BeautifulSoup
@@ -51,6 +52,7 @@ async def fetch_and_insert_modifications(
 
         processed_urls.add(current_url)  # Додати поточний URL до оброблених
 
+
 async def fetch_modifications_type_1(trim_id: int, soup: BeautifulSoup, db=None):
     modifications = []
     # Логіка парсингу для типу сторінки 1
@@ -94,7 +96,8 @@ async def fetch_modifications_type_1(trim_id: int, soup: BeautifulSoup, db=None)
                     wheel_fasteners=modification_info['wheel_fasteners'],
                     thread_size=modification_info['thread_size'],
                     wheel_tightening=modification_info['wheel_tightening'],
-                    fuel=fuel_type.find('h5').text.strip().replace(':', '')
+                    fuel=fuel_type.find('h5').text.strip().replace(':', ''),
+                    trim_levels=modification_info['trim_levels']
                 )
                 modifications.append(modification)
 
@@ -120,39 +123,55 @@ async def parse_modification_info(soup: BeautifulSoup) -> dict:
         'wheel_fasteners': None,
         'thread_size': None,
         'wheel_tightening': None,
-        'engine': None
+        'engine': None,
+        'trim_levels': None
     }
 
     parameters = soup.find_all('li', class_='element-parameter')
     for param in parameters:
         param_name = param.find('span', class_='parameter-name').text.strip()
 
-        if 'Engine' in param_name:
-            info['engine'] = param.parent.text.split(':')[-1].strip()
+        # Debug output for tracking parsing
+        print(f"Parsing parameter: {param_name}")
 
-        if 'Production' in param_name:
-            years = param.text.split(':')[-1].strip().replace('[', '').replace(']', '').split('..')
+        if 'Engine' in param_name:
+            info['engine'] = get_clean_text(param, split_char=':', index=1)
+
+        elif 'Production' in param_name:
+            years = param.get_text(strip=True).split(':')[-1].replace('[', '').replace(']', '').split('..')
             info['year_from'] = int(years[0].strip())
             info['year_to'] = years[1].strip() if len(years) > 1 else 'Present'
 
         elif 'Sales regions' in param_name:
             regions = param.find_all('span', class_='cursor-pointer as_link')
-            info['regions'] = [region.text.strip() for region in regions]
+            info['regions'] = [region.get_text(strip=True) for region in regions]
 
         elif 'Center Bore / Hub Bore' in param_name:
-            info['center_bore_hub_bore'] = param.parent.text.split(':')[-1].strip()
+            info['center_bore_hub_bore'] = param.find('span', id=True).get_text(strip=True)
 
         elif 'Bolt Pattern (PCD)' in param_name:
-            info['bolt_pattern_pcd'] = param.parent.text.split(':')[-1].strip()
+            info['bolt_pattern_pcd'] = param.get_text(strip=True).split(':')[-1].strip()
 
         elif 'Wheel Fasteners' in param_name:
-            info['wheel_fasteners'] = param.parent.text.split(':')[-1].strip()
+            info['wheel_fasteners'] = param.find('div').get_text(strip=True).split(':')[-1].strip()
 
         elif 'Thread Size' in param_name:
-            info['thread_size'] = param.parent.text.split(':')[-1].strip()
+            info['thread_size'] = param.find('span', id=True).get_text(strip=True)
 
         elif 'Wheel Tightening Torque' in param_name:
-            info['wheel_tightening'] = param.parent.text.split(':')[-1].strip()
+            wheel_tightening_element = param.find('span', id=True)
+            if wheel_tightening_element:
+                info['wheel_tightening'] = wheel_tightening_element.get_text(strip=True)
+            else:
+                info['wheel_tightening'] = "unknown"
+
+        elif 'Trim levels' in param_name:
+            # Extract the entire text including children and then isolate the trim levels
+            trim_levels_text = param.find(text=True, recursive=False)
+            if trim_levels_text:
+                info['trim_levels'] = trim_levels_text.strip()
+            else:
+                info['trim_levels'] = "unknown"
 
     print(info)
     return info
@@ -169,3 +188,12 @@ async def save_modifications(modifications: List[ModificationCreate], trim_id: i
         await update_trim_processed(db, trim_id)
     except Exception as e:
         print(f'Помилка під час збереження модифікацій: {e}')
+
+
+def get_clean_text(container, split_char=':', index=1):
+    """Extracts and cleans text from the container based on split character and index."""
+    if container:
+        parts = container.get_text(strip=True).split(split_char)
+        if len(parts) > index:
+            return re.sub(r'\s+', ' ', parts[index]).strip()
+    return None
