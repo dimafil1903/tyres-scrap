@@ -32,6 +32,7 @@ async def process_trims(unprocessed_trims, db):
         processed = False
         while not processed:
             try:
+                await asyncio.sleep(2)  # Sleep to avoid being blocked by the server for 2 seconds
                 await process_trim(trim, db, browser)
                 processed = True
             except BrowserRestartException:
