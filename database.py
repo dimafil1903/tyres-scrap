@@ -148,13 +148,13 @@ async def get_db():
 
 
 async def create_brand(db: AsyncSession, brand: BrandCreate):
-    query = insert(BrandModel).values(name=brand.name, url=brand.url)
+    query = insert(BrandModel).values(name=brand.name, url=str(brand.url))
     await db.execute(query)
     await db.commit()
 
 
 async def create_model(db: AsyncSession, model: ModelCreate, brand_id: int):
-    query = insert(ModelModel).values(name=model.name, url=model.url, brand_id=brand_id).options(
+    query = insert(ModelModel).values(name=model.name, url=str(model.url), brand_id=brand_id).options(
         joinedload(ModelModel.brand))
     await db.execute(query)
     await db.commit()
@@ -166,7 +166,7 @@ async def create_trim(db: AsyncSession, trim: TrimCreate, model_id: int):
         name=trim.name,
         year_from=trim.year_from,
         year_to=trim.year_to,
-        url=trim.url,
+        url=str(trim.url),
         regions=regions_str,
         model_id=model_id
     ).options(joinedload(TrimModel.model))
@@ -183,7 +183,7 @@ async def create_modification(db: AsyncSession, modification: ModificationCreate
         year_from=modification.year_from,
         year_to=modification.year_to,
         regions=regions_str,
-        url=modification.url,
+        url=str(modification.url),
         fuel=modification.fuel,
         engine=modification.engine,
         power=modification.power,
