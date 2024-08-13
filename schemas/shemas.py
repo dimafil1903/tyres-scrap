@@ -48,26 +48,24 @@ class Trim(TrimCreate):
         orm_mode = True
 
 
-
-
 class SizeCreate(BaseModel):
-    modification_id: Optional[int]
-    tire_front: Optional[str]
-    tire_rear: Optional[str]
-    rim_front: Optional[str]
-    rim_rear: Optional[str]
-    offset_front: Optional[str]
-    offset_rear: Optional[str]
-    backspacing_front: Optional[str]
-    backspacing_rear: Optional[str]
-    weight_front: Optional[str]
-    weight_rear: Optional[str]
-    pressure_front: Optional[str]
-    pressure_rear: Optional[str]
-    load_index_front: Optional[str]
-    load_index_rear: Optional[str]
-    speed_index_front: Optional[str]
-    speed_index_rear: Optional[str]
+    modification_id: Optional[int] = None
+    tire_front: Optional[str] = None
+    tire_rear: Optional[str] = None
+    rim_front: Optional[str] = None
+    rim_rear: Optional[str] = None
+    offset_front: Optional[str] = None
+    offset_rear: Optional[str] = None
+    backspacing_front: Optional[str] = None
+    backspacing_rear: Optional[str] = None
+    weight_front: Optional[str] = None
+    weight_rear: Optional[str] = None
+    pressure_front: Optional[str] = None
+    pressure_rear: Optional[str] = None
+    load_index_front: Optional[str] = None
+    load_index_rear: Optional[str] = None
+    speed_index_front: Optional[str] = None
+    speed_index_rear: Optional[str] = None
     original_equipment: bool = False
     run_flats_tire: bool = False
     recommended_for_winter: bool = False
@@ -77,9 +75,9 @@ class SizeCreate(BaseModel):
 class Size(SizeCreate):
     id: int
 
-
     class Config:
         orm_mode = True
+
 
 class ModificationCreate(BaseModel):
     name: str
@@ -95,7 +93,7 @@ class ModificationCreate(BaseModel):
     thread_size: str
     wheel_tightening: str
     regions: List[str]
-    trim_levels: Optional[str]  # This allows trim_levels to be None
+    trim_levels: Optional[str] = None  # This allows trim_levels to be None
     sizes: List[SizeCreate]
 
 
@@ -106,6 +104,3 @@ class Modification(ModificationCreate):
 
     class Config:
         orm_mode = True
-
-
-

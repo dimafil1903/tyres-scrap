@@ -57,7 +57,7 @@ async def create_browser(proxy=None):
     options.add_argument("--log-level=3")
     options.add_argument("--v=1")
     # options.add_argument("--disable-gpu")
-    # options.add_argument("--headless")  # Run browser in the background
+    options.add_argument("--headless")  # Run browser in the background
 
     # Ignore SSL certificate errors
     options.add_argument("--ignore-certificate-errors")

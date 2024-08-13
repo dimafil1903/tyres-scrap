@@ -385,8 +385,6 @@ async def save_modifications(modifications: List[ModificationCreate], trim_id: i
             try:
                 # Create the modification and get its ID
                 modification_id = await create_modification(db, mod, trim_id)
-
-
                 # Save the sizes for the modification
 
                 for size_data in mod.sizes:
@@ -412,27 +410,3 @@ def get_clean_text(container, split_char=':', index=1):
             return re.sub(r'\s+', ' ', parts[index]).strip()
     return None
 
-
-def convert_size_to_tuple(size_dict):
-    return (
-        size_dict.get('tire_front'),
-        size_dict.get('tire_rear'),
-        size_dict.get('rim_front'),
-        size_dict.get('rim_rear'),
-        size_dict.get('offset_front'),
-        size_dict.get('offset_rear'),
-        size_dict.get('backspacing_front'),
-        size_dict.get('backspacing_rear'),
-        size_dict.get('weight_front'),
-        size_dict.get('weight_rear'),
-        size_dict.get('pressure_front'),
-        size_dict.get('pressure_rear'),
-        size_dict.get('load_index_front'),
-        size_dict.get('load_index_rear'),
-        size_dict.get('speed_index_front'),
-        size_dict.get('speed_index_rear'),
-        size_dict.get('original_equipment'),
-        size_dict.get('run_flats_tire'),
-        size_dict.get('recommended_for_winter'),
-        size_dict.get('extra_load_tire')
-    )
