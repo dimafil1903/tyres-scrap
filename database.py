@@ -193,13 +193,16 @@ async def create_modification(db: AsyncSession, modification: ModificationCreate
         thread_size=modification.thread_size,
         wheel_tightening=modification.wheel_tightening,
         trim_levels=modification.trim_levels
-    ).returning(ModificationModel.id)
+    )
 
+    # Виконуємо запит на вставку
     result = await db.execute(query)
     await db.commit()
 
-    modification_id = result.scalar()
+    # Отримуємо ID щойно вставленого запису
+    modification_id = result.lastrowid
     return modification_id
+
 
 
 async def create_size_entry(db: AsyncSession, modification_id: int, size_data: SizeCreate):
