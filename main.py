@@ -7,19 +7,24 @@ from database import setup_database, create_brand, get_unprocessed_brands, get_u
 from models import fetch_and_insert_models
 from modifications import fetch_and_insert_modifications
 from trims import fetch_and_insert_trims
+import traceback
+
 
 async def process_brands(unprocessed_brands, db):
     for brand in unprocessed_brands:
         await asyncio.sleep(3)  # Sleep to avoid being blocked by the server for 2 seconds
         await fetch_and_insert_models(brand.id, brand.url, db=db)
 
+
 async def process_models(unprocessed_models, db):
     for model in unprocessed_models:
         await asyncio.sleep(3)  # Sleep to avoid being blocked by the server for 2 seconds
         await fetch_and_insert_trims(model.id, model.url, db=db)
 
+
 async def process_trim(trim, db, browser):
     await fetch_and_insert_modifications(trim.id, trim.url, db=db, browser=browser)
+
 
 async def process_trims(unprocessed_trims, db):
     browser = await create_browser()  # Create browser once for processing all trims
@@ -34,9 +39,14 @@ async def process_trims(unprocessed_trims, db):
                 browser = await create_browser()
                 await asyncio.sleep(1)
             except Exception as e:
+                # Print the traceback and continue processing other trims
+                print("Traceback (most recent call last):")
+                traceback.print_exc()
+
                 print(f"Unexpected error processing trim {trim.id}: {e}")
                 processed = True  # Skip this trim after logging the error
     browser.close()  # Ensure the browser is closed after processing
+
 
 async def main():
     await setup_database()
@@ -60,6 +70,7 @@ async def main():
         unprocessed_trims = await get_unprocessed_trims(db)
         if unprocessed_trims:
             await process_trims(unprocessed_trims, db)
+
 
 if __name__ == '__main__':
     asyncio.run(main())
