@@ -270,26 +270,33 @@ def parse_sizes(row) -> dict:
         size_info['load_index_rear'] = rear_index[:-1]
         size_info['speed_index_rear'] = rear_index[-1]
 
-    # Парсинг обода (Rim)
+        # Парсинг обода (Rim)
     rim_element = row.find('td', class_='data-rim')
     if rim_element:
-        # Отримуємо переднє значення (основний текст в <span> з id)
-        front_rim_span = rim_element.find('span', id=True)
-        front_value = front_rim_span.get_text(strip=True) if front_rim_span and front_rim_span.get_text(
-            strip=True) else None
-
-        # Спробуємо знайти заднє значення всередині rear-rim-data-full
-        rear_rim_span = rim_element.find('span', class_='rear-rim-data-full')
-
-        if rear_rim_span:
-            rear_rim_id_span = rear_rim_span.find('span', id=True)
-            rear_value = rear_rim_id_span.get_text(strip=True) if rear_rim_id_span and rear_rim_id_span.get_text(
-                strip=True) else front_value
+        # Отримання переднього розміру диску
+        front_rim = rim_element.find('span', class_='js-loaded')
+        if front_rim:
+            front_rim = front_rim.get_text(strip=True)
         else:
-            rear_value = front_value
+            front_rim = rim_element.find('span', class_='masha_index')
+            if front_rim:
+                front_rim = front_rim.find_next_sibling(text=True)
+                if front_rim:
+                    front_rim = front_rim.strip()
 
-        size_info['rim_front'] = front_value
-        size_info['rim_rear'] = rear_value
+        # Спроба отримання заднього розміру диску, якщо він є
+        rear_rim_data = rim_element.find('span', class_='rear-rim-data-full')
+        rear_rim = None
+        if rear_rim_data:
+            rear_rim = rear_rim_data.get_text(strip=True)
+
+        # Якщо задній розмір є, а передній розмір зливається з ним
+        if rear_rim and front_rim and front_rim.endswith(rear_rim):
+            front_rim = front_rim.replace(rear_rim, '').strip()
+
+        # Збереження значень в size_info
+        size_info['rim_front'] = front_rim if front_rim else None
+        size_info['rim_rear'] = rear_rim if rear_rim else None
 
     # Парсинг Offset
     # Знаходимо елемент <td> з класом "data-offset-range"
