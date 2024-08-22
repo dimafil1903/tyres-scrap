@@ -271,24 +271,32 @@ def parse_sizes(row) -> dict:
         size_info['speed_index_rear'] = rear_index[-1]
 
         # Парсинг обода (Rim)
+    front_rim = rear_rim = None
+
     rim_element = row.find('td', class_='data-rim')
     if rim_element:
         # Отримання переднього розміру диску
         front_rim = rim_element.find('span', class_='js-loaded')
         if front_rim:
             front_rim = front_rim.get_text(strip=True)
+            if front_rim == "Help complete this info":
+                front_rim = None
         else:
             front_rim = rim_element.find('span', class_='masha_index')
             if front_rim:
                 front_rim = front_rim.find_next_sibling(text=True)
                 if front_rim:
                     front_rim = front_rim.strip()
+                    if front_rim == "Help complete this info":
+                        front_rim = None
 
         # Спроба отримання заднього розміру диску, якщо він є
         rear_rim_data = rim_element.find('span', class_='rear-rim-data-full')
         rear_rim = None
         if rear_rim_data:
             rear_rim = rear_rim_data.get_text(strip=True)
+            if rear_rim == "Help complete this info":
+                rear_rim = None
 
         # Якщо задній розмір є, а передній розмір зливається з ним
         if rear_rim and front_rim and front_rim.endswith(rear_rim):
@@ -296,7 +304,10 @@ def parse_sizes(row) -> dict:
 
         # Збереження значень в size_info
         size_info['rim_front'] = front_rim if front_rim else None
-        size_info['rim_rear'] = rear_rim if rear_rim else None
+        size_info['rim_rear'] = rear_rim if rear_rim else front_rim
+
+    print("Rim data")
+    print(front_rim, rear_rim)
 
     # Парсинг Offset
     # Знаходимо елемент <td> з класом "data-offset-range"
@@ -311,11 +322,14 @@ def parse_sizes(row) -> dict:
 
         # Ініціалізуємо змінні для переднього і заднього значень
         front_value = filtered_texts[0] if len(filtered_texts) > 0 else None
-        rear_value = filtered_texts[1] if len(filtered_texts) > 1 else front_value
+        rear_value = filtered_texts[1] if len(filtered_texts) > 1 else None
 
-        size_info['offset_front'] = front_value
-        size_info['offset_rear'] = rear_value
+        # Видалення заднього значення з переднього, якщо воно зливається
+        if rear_value and front_value and front_value.endswith(rear_value):
+            front_value = front_value.replace(rear_value, '').strip()
 
+        size_info['offset_front'] = front_value if front_value else None
+        size_info['offset_rear'] = rear_value if rear_value else front_value
 
     # Парсинг Backspacing
     backspacing_elements = row.find('td', class_='data-backspacing')
