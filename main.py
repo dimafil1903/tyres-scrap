@@ -12,13 +12,13 @@ import traceback
 
 async def process_brands(unprocessed_brands, db):
     for brand in unprocessed_brands:
-        await asyncio.sleep(3)  # Sleep to avoid being blocked by the server for 2 seconds
+        await asyncio.sleep(5)  # Sleep to avoid being blocked by the server for 2 seconds
         await fetch_and_insert_models(brand.id, brand.url, db=db)
 
 
 async def process_models(unprocessed_models, db):
     for model in unprocessed_models:
-        await asyncio.sleep(3)  # Sleep to avoid being blocked by the server for 2 seconds
+        await asyncio.sleep(5)  # Sleep to avoid being blocked by the server for 2 seconds
         await fetch_and_insert_trims(model.id, model.url, db=db)
 
 

@@ -119,7 +119,7 @@ async def get(driver, url, semaphore, timeout=30, max_retries=MAX_RETRIES,
     return None
 
 
-async def fetch_with_retry(url, retries=1000, proxy=None):
+async def fetch_with_retry(url, retries=3, proxy=None):
     for attempt in range(retries):
         async with aiohttp.ClientSession() as session:
             try:
