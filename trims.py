@@ -61,7 +61,7 @@ async def fetch_and_insert_trims(
                 for region in region_elements:
                     regions.append(region.text.strip())
 
-                yield TrimCreate(name=name.strip(), year_from=year_from, year_to=year_to, url=url, regions=regions)
+                yield TrimCreate(name=name.strip(), year_from=int(year_from), year_to=str(year_to), url=url, regions=regions)
 
     try:
         async for trim in get_trims():

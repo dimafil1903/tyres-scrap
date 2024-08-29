@@ -86,8 +86,8 @@ async def fetch_modifications_type_1(trim_id: int, soup: BeautifulSoup, db=None)
                 modification = ModificationCreate(
                     trim_id=trim_id,
                     name=link.find('span', class_='position-relative').text.strip(),
-                    year_from=modification_info['year_from'],
-                    year_to=modification_info['year_to'],
+                    year_from=int(modification_info['year_from']),
+                    year_to=str(modification_info['year_to']),
                     regions=modification_info['regions'],
                     url='https://www.wheel-size.com' + href + '?rand=' + str((random.Random().getrandbits(32))),
                     engine=modification_info['engine'],
