@@ -17,12 +17,12 @@ class Brand(BrandCreate):
         orm_mode = True
 
 
-class ModelCreate(BaseModel):
+class CarModelCreate(BaseModel):
     name: str
     url: HttpUrl
 
 
-class Model(ModelCreate):
+class CarModel(CarModelCreate):
     id: int
     brand_id: int
     processed: bool

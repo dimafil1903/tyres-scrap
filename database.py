@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, joinedload
 
-from schemas.shemas import BrandCreate, ModelCreate, TrimCreate, ModificationCreate, SizeCreate
+from schemas.shemas import BrandCreate, CarModelCreate, TrimCreate, ModificationCreate, SizeCreate
 
 DATABASE_URL = 'sqlite+aiosqlite:///./db.db'
 database = databases.Database(DATABASE_URL)
@@ -153,7 +153,7 @@ async def create_brand(db: AsyncSession, brand: BrandCreate):
     await db.commit()
 
 
-async def create_model(db: AsyncSession, model: ModelCreate, brand_id: int):
+async def create_model(db: AsyncSession, model: CarModelCreate, brand_id: int):
     query = insert(ModelModel).values(name=model.name, url=str(model.url), brand_id=brand_id).options(
         joinedload(ModelModel.brand))
     await db.execute(query)
